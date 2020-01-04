@@ -63,6 +63,8 @@ def convolution_layer_test():
     plt.show()
 # ----- end of convolution layer test -----
 
+
+# --------- convolution network test --------
 def convolution_network_test():
 
     # x = plt.imread('test_pictures/' + "hl.jpg")
@@ -93,6 +95,7 @@ def convolution_network_test():
 
     plt.plot(E)
     plt.show()
+# --------- end of convolution network test --------
 
 if __name__ == '__main__':
 
