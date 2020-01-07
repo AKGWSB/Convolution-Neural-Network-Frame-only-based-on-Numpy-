@@ -1,10 +1,19 @@
 import numpy as np
 
 '''
+Author: Ruo Long Lee, Collage of Computer Science, Shen Zhen University
+      : 李若龙 深大计软
+'''
+
+'''
 Loss.py
 every loss function has two stationary function:
 get_error   : get the error between model's output and train target
 get_gradient: get the model's parameters' gradient from loss function
+
+每个损失函数必须有两个固定名字的方法：
+get_error    ：正向传播一次，得到一个误差
+get_gradient ：得到反向传播需要的梯度，即损失函数对最后输出层输出的梯度
 '''
 
 class Mean_squared_error:
@@ -28,9 +37,10 @@ class Cross_entropy:
     def get_error(self, output, target):
         self.output = output
         self.target = target
-        # print(output)
-        self.error = -1*np.sum(self.target*np.log(self.output))
+        # print(np.sum(output)) # sum = 1
+        self.error = -1*np.sum(self.target * np.log(self.output))
+        # print('output=', output[..., 0], 'target=', target[..., 0])
         return self.error
 
     def get_gradient(self):
-        return (-1*self.target/self.output)
+        return -1*(self.target/self.output)

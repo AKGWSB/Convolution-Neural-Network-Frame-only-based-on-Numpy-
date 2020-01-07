@@ -1,5 +1,24 @@
 import numpy as np
 
+'''
+Author: Ruo Long Lee, Collage of Computer Science, Shen Zhen University
+      : 李若龙 深大计软
+'''
+
+'''
+all layers' input / output shape must be a two or more dimension's np array
+sample: input a vector of vec3(1, 1, 1), three numbers , the shape must be (3, 1)
+      : even a single number , must have the shape of (1, 1) 
+      : in other words , it's a type of two dimension's 'tensor', or blocks(??)
+      : as channels of RGB image , the third shape of the array is channels
+      
+所有层的输入输出形状必须是至少两个维度的数组
+示例：输入一个三个数字组成的向量，维度必须是 (3, 1)
+    ：即使是单个数字，也必须拥有 (1, 1) 的大小
+    ：换句话说就是经过层的‘流’至少是二维表示的，一种‘张量’，或者类似方块的堆叠
+    ：彩色图像的通道数使用第三个维度表示
+'''
+
 class Input:
     '''
     Input layer
@@ -38,6 +57,8 @@ class Output:
         self.next_layer = None
         self.last_layer = last_layer
         self.last_layer.next_layer = self
+
+        self.output_shape = self.last_layer.output_shape
 
     # Forward propagation
     # when FP called in output, output_layer.output = last_layer's output
@@ -78,7 +99,10 @@ class Dense:
         # kaiming init :
         self.weights = np.random.rand(self.input_shape[0], self.output_shape[0])
         self.weights /= (0.5 * np.sqrt(self.input_shape[0] * self.output_shape[0]))
-        self.bias = np.zeros((self.output_shape[0], 1))
+        self.weights -= np.mean(self.weights)
+        self.bias = np.random.rand(self.output_shape[0], 1)
+        self.bias /= np.sum(self.bias)
+        self.bias -= np.mean(self.bias)
 
     # Forward propagation
     # parameters
@@ -86,6 +110,7 @@ class Dense:
     def FP(self, x):
         self.input = x
         self.output = self.weights.T.dot(self.input) + self.bias
+        # print('output.shape = ',self.output.shape)
         self.next_layer.FP(x=self.output)
 
     # Back propagation
@@ -139,7 +164,8 @@ class Relu:
         # input>0, self.gradient = 1 * gradient , else self.gradient = 0
         select_mat = np.zeros(shape=self.input.shape)
         select_mat = np.greater(self.input, select_mat)
-        self.last_layer.BP(gradient=select_mat*gradient, lr=lr)
+        self.last_layer_gradient = select_mat*gradient
+        self.last_layer.BP(gradient=self.last_layer_gradient, lr=lr)
 
 class Softmax:
     '''
@@ -164,12 +190,29 @@ class Softmax:
 
     def FP(self, x):
         self.input = x
-        self.output = self.input / np.sum(self.input)
+        self.expi = np.exp(self.input)
+        self.sum = np.sum(self.expi)
+        self.output = self.expi / self.sum
         self.next_layer.FP(x=self.output)
 
     def BP(self, gradient, lr):
         self.gradient = gradient
-        self.last_layer.BP(gradient=self.gradient/np.sum(self.input), lr=lr)
+        self.tp = self.expi/self.sum
+        self.last_layer_gradient = np.zeros(shape=self.input_shape)
+
+        for i in range(self.input_shape[0]):
+            self.gradient_for_Ii = np.zeros(shape=self.input_shape)
+            for j in range(self.input_shape[0]):
+                if i == j:
+                    self.gradient_for_Ii[j] = self.output[i]*(1 - self.output[i])
+                else:
+                    self.gradient_for_Ii[j] = -1 * self.output[i] * self.output[j]
+
+            self.last_layer_gradient[i] = np.sum(self.gradient_for_Ii * self.gradient)
+
+        self.last_layer.BP(gradient=self.last_layer_gradient, lr=lr)
+
+        # bottom_diff = (top_diff - dot(top_diff, top_data)) * top_data
 
 class Flatten:
     '''
