@@ -6,6 +6,7 @@ Author: Ruo Long Lee, Collage of Computer Science, Shen Zhen University
 '''
 
 '''
+工地英语警告↓
 all layers' input / output shape must be a two or more dimension's np array
 sample: input a vector of vec3(1, 1, 1), three numbers , the shape must be (3, 1)
       : even a single number , must have the shape of (1, 1) 
