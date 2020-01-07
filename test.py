@@ -220,7 +220,7 @@ def convolution_mnist_test():
     print('accruacy is ', cnt / 100)
 
     plt.plot(E)
-    plt.show()
+    plt.show() 
 
 if __name__ == '__main__':
 
