@@ -37,10 +37,9 @@ class Cross_entropy:
     def get_error(self, output, target):
         self.output = output
         self.target = target
-        # print(np.sum(output)) # sum = 1
-        self.error = -1*np.sum(self.target * np.log(self.output))
-        # print('output=', output[..., 0], 'target=', target[..., 0])
+        self.error = -1 * np.sum(self.target * np.log(self.output))
+
         return self.error
 
     def get_gradient(self):
-        return -1*(self.target/self.output)
+        return -1 * self.target / self.output

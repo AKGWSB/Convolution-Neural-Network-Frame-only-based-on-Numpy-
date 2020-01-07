@@ -94,12 +94,12 @@ def convolution_network_test():
     plt.plot(E)
     plt.show()
 
-def convolution_mnist_test():
+def dense_mnist_test():
     from keras.datasets import mnist
     (x_train, y_train), (x_test, y_test) = mnist.load_data()
     n_classes = 10
     x_train = np.expand_dims(x_train[0:100], -1) / 255
-    y_train = np.expand_dims(np.eye(n_classes)[y_train[0:100]], -1)
+    y_train = np.expand_dims(np.eye(n_classes)[y_train[0:100]], -1) # one hot labeling
     # print(x_train.shape, y_train[0], y_train[0].shape)
 
     input = Input(input_shape=(28, 28, 1))
@@ -116,46 +116,38 @@ def convolution_mnist_test():
     ce = Loss.Cross_entropy()
     model = Model(input_layer=input, output_layer=output, loss=ce)
 
-    # E = model.train_all_batch(x_train=x_train, y_train=y_train, epoch=1000, lr=0.01)
-    # plt.plot(E)
-    # plt.show()
+    model.train_SGD(x_train_batch=x_train, y_train_batch=y_train, epoch=100, step_pre_epoch=100, lr=0.01)
 
-    E = []
-    i = 0
-    epoch = 1000
-    setp_pre_epoch = 100
-    for x in range(epoch):
-        i = np.random.randint(0, 100, size=(1,))
-        error = model.train_once(input=x_train[i], target=y_train[i], lr=0.001)
-        E.append(error)
+    # test
+    cnt = 0
+    for i in range(100):
+        o = model.predict(input=x_train[i])
+        o = o[..., 0]
+        t = y_train[i][..., 0]
 
-        i += 1
-        if i==setp_pre_epoch-1 :
-            i = 0
+        pl = np.argmax(o)
+        pt = np.argmax(t)
+        print('output=', o)
+        print('true=', t)
+        print('predict=', pl, 'true=', pt)
+        if pl == pt:
+            cnt += 1
+        print('\n')
+    print('accruacy is ', cnt / 100)
 
-        if (error < 0.1):
-            break
-
-    plt.plot(E)
-    plt.show()
-
-def sin_test():
+def dense_sin_test():
     # sin data prepare
     x_train = np.zeros(shape=(360, 1))
     y_train = np.zeros(shape=(360, 1))
-    xp = []
     for i in range(360):
         degree = (i/180)*3.1415926
         x_train[i] = degree
         y_train[i] = np.sin(degree)
-        xp.append(y_train[i])
     # plt.plot(xp)
     # plt.show()
 
     x_train = np.expand_dims(x_train, -1)
-    x_train -= 3.1415926
     y_train = np.expand_dims(y_train, -1)
-
     # end of sin data prepare
 
     input = Input(input_shape=(1, 1))
@@ -171,12 +163,7 @@ def sin_test():
     mse = Loss.Mean_squared_error()
     model = Model(input_layer=input, output_layer=output, loss=mse)
 
-    epoch = 100
-    step_pre_epoch = 360
-    for xx in range(epoch):
-        for i in range(step_pre_epoch):
-            ii = np.sum(np.random.randint(0, step_pre_epoch, (1,))) # random index
-            error = model.train_once(input=x_train[ii], target=y_train[ii], lr=0.01)
+    model.train_SGD(x_train_batch=x_train, y_train_batch=y_train, epoch=100, step_pre_epoch=400, lr=0.01)
 
     res = []
     for i in range(360):
@@ -186,18 +173,63 @@ def sin_test():
 
     plt.clf()
     plt.plot(x_train[..., 0], res)
-    plt.plot(x_train[..., 0], xp)
+    plt.plot(x_train[..., 0], y_train[..., 0])
     plt.show()
         # path = 'plots/' + str(xx) + ',jpg'
         # plt.savefig(path)
+
+def convolution_mnist_test():
+    from keras.datasets import mnist
+    (x_train, y_train), (x_test, y_test) = mnist.load_data()
+    n_classes = 10
+    x_train = np.expand_dims(x_train[0:100], -1) / 255
+    y_train = np.expand_dims(np.eye(n_classes)[y_train[0:100]], -1)  # one hot labeling
+    # print(x_train.shape, y_train[0], y_train[0].shape)
+
+    input = Input(input_shape=(28, 28, 1))
+    conv = Convolution2D(last_layer=input, kernal_number=4, kernal_size=(3, 3))
+    r = Relu(last_layer=conv)
+    flatten = Flatten(last_layer=r)
+    # d1 = Dense(output_units=32, last_layer=flatten)
+    # r2 = Relu(last_layer=d1)
+    d2 = Dense(output_units=10, last_layer=flatten)
+    r3 = Relu(last_layer=d2)
+    sm = Softmax(last_layer=r3)
+    output = Output(last_layer=sm)
+
+    ce = Loss.Cross_entropy()
+    model = Model(input_layer=input, output_layer=output, loss=ce)
+
+    E = model.train_SGD(x_train_batch=x_train, y_train_batch=y_train, epoch=7, step_pre_epoch=100, lr=0.01)
+
+    # test
+    cnt = 0
+    for i in range(100):
+        o = model.predict(input=x_train[i])
+        o = o[..., 0]
+        t = y_train[i][..., 0]
+
+        pl = np.argmax(o)
+        pt = np.argmax(t)
+        print('output=', o)
+        print('true=', t)
+        print('predict=', pl, 'true=', pt)
+        if pl == pt:
+            cnt += 1
+        print('\n')
+    print('accruacy is ', cnt / 100)
+
+    plt.plot(E)
+    plt.show()
 
 if __name__ == '__main__':
 
     # full_connect_network_test()
     # convolution_layer_test()
     # convolution_network_test()
-    # convolution_mnist_test()
-    sin_test()
+    # dense_mnist_test()
+    # dense_sin_test()
+    convolution_mnist_test()
 
 
 

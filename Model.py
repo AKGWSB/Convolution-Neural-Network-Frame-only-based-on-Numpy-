@@ -27,10 +27,12 @@ class Model:
 
         self.output_layer.BP(gradient=gradient, lr=lr)
 
-        print('error: ', error)   # one hot label
+        # print('error: ', error)   # one hot label
+        # print(output, target)
 
         return error
 
+    # some problem here function ↓
     def train_all_batch(self, x_train, y_train, epoch, lr):
         batch_size = x_train.shape[0]
         # print(batch_size)
@@ -56,5 +58,19 @@ class Model:
 
             self.output_layer.BP(gradient=gradient, lr=lr)
 
+        return E
+
+    # the input (x_train ) must be (batch_size, input_shape )
+    # the output (y_train) must be (batch_size, output_shape)
+    # the first axis (0) of input / output batch is the size of batch
+    def train_SGD(self, x_train_batch, y_train_batch, epoch, step_pre_epoch, lr):
+        E = []
+        train_size = x_train_batch.shape[0]
+        for xx in range(epoch):
+            for i in range(step_pre_epoch):
+                ridx = np.sum(np.random.randint(0, train_size, (1,)))  # random index, select a sample from batch
+                error = self.train_once(input=x_train_batch[ridx], target=y_train_batch[ridx], lr=lr)
+                print('epoch ', xx, 'error= ', error)
+                E.append(error)
         return E
 

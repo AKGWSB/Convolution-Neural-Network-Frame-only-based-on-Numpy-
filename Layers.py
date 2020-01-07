@@ -100,10 +100,10 @@ class Dense:
         # kaiming init :
         self.weights = np.random.rand(self.input_shape[0], self.output_shape[0])
         self.weights /= (0.5 * np.sqrt(self.input_shape[0] * self.output_shape[0]))
-        self.weights -= np.mean(self.weights)
+        #self.weights -= np.mean(self.weights)  # problem
         self.bias = np.random.rand(self.output_shape[0], 1)
         self.bias /= np.sum(self.bias)
-        self.bias -= np.mean(self.bias)
+        #self.bias -= np.mean(self.bias)    # problem
 
     # Forward propagation
     # parameters
