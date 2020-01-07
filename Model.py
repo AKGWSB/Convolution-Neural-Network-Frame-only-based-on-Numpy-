@@ -70,7 +70,7 @@ class Model:
             for i in range(step_pre_epoch):
                 ridx = np.sum(np.random.randint(0, train_size, (1,)))  # random index, select a sample from batch
                 error = self.train_once(input=x_train_batch[ridx], target=y_train_batch[ridx], lr=lr)
-                print('epoch ', xx, 'error= ', error)
+                print('epoch ', xx+1, 'error= ', error)
                 E.append(error)
         return E
 
