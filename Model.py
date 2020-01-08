@@ -90,14 +90,18 @@ class Model:
     # the input (x_train ) must be (batch_size, input_shape )
     # the output (y_train) must be (batch_size, output_shape)
     # the first axis (0) of input_batch / output_batch is the size of batch
+    # return error pre epoch
     def train_SGD(self, x_train_batch, y_train_batch, epoch, step_pre_epoch, lr):
         E = []
         train_size = x_train_batch.shape[0]
         for xx in range(epoch):
+            e = 0
             for i in range(step_pre_epoch):
                 ridx = np.sum(np.random.randint(0, train_size, (1,)))  # random index, select a sample from batch
                 error = self.train_once(input=x_train_batch[ridx], target=y_train_batch[ridx], lr=lr)
-                print('epoch ', xx+1, 'error= ', error)
-                E.append(error)
+                print('epoch', xx+1, '/', epoch, ' step', i+1, '/', step_pre_epoch, ' error:', error)
+                # E.append(error)
+                e += error
+            E.append(e)
         return E
 

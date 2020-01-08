@@ -354,11 +354,11 @@ class Convolution2D:
         # weights flip 180 degree
         self.w_flip = np.flip(np.flip(self.kernals, 0), 1)
         # padding gradient
-        gl1 = self.gradient.shape[0]
+        gl1 = self.gradient.shape[0]        # 回传梯度的形状
         gl2 = self.gradient.shape[1]
-        b1 = int(self.kernals.shape[0]/2)
+        b1 = int(self.kernals.shape[0]/2)   # 卷积卷掉的像素个数
         b2 = int(self.kernals.shape[1]/2)
-        ks1 = self.kernals.shape[0]
+        ks1 = self.kernals.shape[0]         # 卷积核形状
         ks2 = self.kernals.shape[1]
         self.gradient_pad = np.zeros(shape=(gl1+4*b1, gl2+4*b2, self.kernal_number))
         self.gradient_pad[2*b1:2*b1+gl1, 2*b2:2*b2+gl2] = self.gradient
@@ -398,3 +398,58 @@ class Convolution2D:
         self.kernals = np.load(path)
         print('load weights successfully, path is:', path)
         self.next_layer.load_weights(name=str(num), root_directory=root_directory)
+
+
+class AveragePooling2D:
+    '''
+    AveragePooling2D layer
+    ------------------- shape ----------------------
+    input_shape                             ：(m, n, c) , c is channels number
+    output_shape                            ：= input_shape
+    next_layer's gradient feed back shape   ：= input_shape
+    gradient to last_layer shape            ：= input_shape
+    ------------------- shape ----------------------
+    '''
+
+    # parameters:
+    # step      : the pooling window is step x step shape
+    def __init__(self, last_layer=None, step=2):
+        # model list struct bound
+        self.next_layer = None
+        self.last_layer = last_layer
+        self.last_layer.next_layer = self
+
+        # IO shape config
+        self.input_shape = self.last_layer.output_shape
+        self.output_shape =self.last_layer.output_shape
+        self.output_shape = list(self.input_shape)
+        self.output_shape[0]  = int(self.input_shape[0] // 2)
+        self.output_shape[1]  = int(self.input_shape[1] // 2)
+        self.output_shape = tuple(self.output_shape)
+
+        self.step = step
+
+    def FP(self, x):
+        self.input = x
+        self.output = np.zeros(shape=self.output_shape)
+        for i in range(self.output_shape[0]):
+            for j in range(self.output_shape[1]):
+                for c in range(self.output_shape[2]):
+                    self.output[i][j][c] = np.sum(self.input[2*i:2*i+self.step, 2*j:2*j+self.step, c]) / self.step*self.step
+        self.next_layer.FP(x=self.output)
+
+    def BP(self, gradient, lr):
+        self.gradient = gradient
+        self.last_layer_gradient = np.zeros(shape=self.input_shape)
+        for i in range(self.output_shape[0]):
+            for j in range(self.output_shape[1]):
+                for c in range(self.output_shape[2]):
+                    self.last_layer_gradient[2*i:2*i+self.step][2*j:2*j+self.step][c:c+1] = self.gradient[i][j][c] / self.step*self.step
+        self.last_layer.BP(gradient=self.last_layer_gradient, lr=lr)
+
+    # no parameters to save or load
+    def save_weights(self, name, root_directory):
+        self.next_layer.save_weights(name=name, root_directory=root_directory)
+
+    def load_weights(self, name, root_directory):
+        self.next_layer.load_weights(name=name, root_directory=root_directory)

@@ -1,6 +1,6 @@
 import numpy as np
 from matplotlib import pyplot as plt
-from Layers import Input, Output, Dense, Relu, Flatten, Convolution2D, Softmax
+from Layers import Input, Output, Dense, Relu, Flatten, Convolution2D, Softmax, AveragePooling2D
 from Model import Model
 import Loss
 
@@ -163,7 +163,7 @@ def dense_sin_test():
     mse = Loss.Mean_squared_error()
     model = Model(input_layer=input, output_layer=output, loss=mse)
 
-    model.train_SGD(x_train_batch=x_train, y_train_batch=y_train, epoch=100, step_pre_epoch=400, lr=0.01)
+    model.train_SGD(x_train_batch=x_train, y_train_batch=y_train, epoch=100, step_pre_epoch=800, lr=0.01)
     # model.train_all_batch(x_train=x_train, y_train=y_train, epoch=1000, lr=0.01)
 
     res = []
@@ -193,7 +193,9 @@ def get_convolution_mnist_model():
     input = Input(input_shape=(28, 28, 1))
     conv = Convolution2D(last_layer=input, kernal_number=4, kernal_size=(3, 3))
     r = Relu(last_layer=conv)
-    flatten = Flatten(last_layer=r)
+    ap = AveragePooling2D(last_layer=r, step=2)
+    r1 = Relu(last_layer=ap)
+    flatten = Flatten(last_layer=r1)
     d2 = Dense(output_units=10, last_layer=flatten)
     r3 = Relu(last_layer=d2)
     sm = Softmax(last_layer=r3)
@@ -207,7 +209,9 @@ def get_convolution_mnist_model():
 def convolution_mnist_test():
     x_train, y_train = get_mnist_100()
     model = get_convolution_mnist_model()
-    E = model.train_SGD(x_train_batch=x_train, y_train_batch=y_train, epoch=7, step_pre_epoch=100, lr=0.01)
+    E = model.train_SGD(x_train_batch=x_train, y_train_batch=y_train, epoch=15, step_pre_epoch=100, lr=0.01)
+    plt.plot(E)
+    plt.show()
     model.save_weights(root_directory='weights')
 
 def load_weights_test():
