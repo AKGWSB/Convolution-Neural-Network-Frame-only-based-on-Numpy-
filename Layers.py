@@ -46,6 +46,13 @@ class Input:
     def BP(self, gradient, lr):
         pass
 
+    # no parameters to save or load
+    def save_weights(self, name, root_directory):
+        self.next_layer.save_weights(name=name,root_directory=root_directory)
+
+    def load_weights(self, name, root_directory):
+        self.next_layer.load_weights(name=name, root_directory=root_directory)
+
 class Output:
     '''
     Output layer
@@ -70,9 +77,16 @@ class Output:
     def BP(self, gradient, lr=0.0001):
         self.last_layer.BP(gradient=gradient, lr=lr)
 
+    # no parameters to save or load
+    def save_weights(self, name, root_directory):
+        pass
+
+    def load_weights(self, name, root_directory):
+        pass
+
 class Dense:
     '''
-    full connect layer, only support input shape (n, 1)
+    full connect layer, only support input shape (m, 1)
     ------------------- shape ----------------------
     input_shape                             ：m x 1
     output_shape                            ：n x 1
@@ -84,7 +98,7 @@ class Dense:
     '''
 
     # parameters
-    # output_units : output_units=n output shape is (m, 1)
+    # output_units : if output_units = m, then output shape is (m, 1)
     # last_layer   : the last layer in your model
     def __init__(self, output_units, last_layer=None):
         # model list struct bound
@@ -136,6 +150,21 @@ class Dense:
         # print('output shape = ', self.output.shape)
         # print('\n')
 
+    def save_weights(self, name, root_directory):
+        num = int(name) + 1
+        path = root_directory + '/' + str(num)
+        np.save(path, self.weights)
+        print('save weights successfully, path is:', path)
+        self.next_layer.save_weights(name=str(num), root_directory=root_directory)
+
+    def load_weights(self, name, root_directory):
+        num = int(name) + 1
+        path = root_directory + '/' + str(num) + '.npy'
+        self.weights = np.load(path)
+        print('load weights successfully, path is:', path)
+        self.next_layer.load_weights(name=str(num), root_directory=root_directory)
+
+
 class Relu:
     '''
     Relu layer
@@ -168,11 +197,18 @@ class Relu:
         self.last_layer_gradient = select_mat*gradient
         self.last_layer.BP(gradient=self.last_layer_gradient, lr=lr)
 
+    # no parameters to save or load
+    def save_weights(self, name, root_directory):
+        self.next_layer.save_weights(name=name, root_directory=root_directory)
+
+    def load_weights(self, name, root_directory):
+        self.next_layer.load_weights(name=name, root_directory=root_directory)
+
 class Softmax:
     '''
     Softmax Layer
     -------------------------------- shape -----------------------------------
-    input_shape                             ：any_shape
+    input_shape                             ：(n, 1) any shape, but must be (x, 1) , two dimension
     output_shape                            ：the same as input_shape
     next_layer's gradient feed back shape   ：the same as output_shape
     gradient to last_layer shape            ：the same as input_shape
@@ -213,14 +249,19 @@ class Softmax:
 
         self.last_layer.BP(gradient=self.last_layer_gradient, lr=lr)
 
-        # bottom_diff = (top_diff - dot(top_diff, top_data)) * top_data
+    # no parameters to save or load
+    def save_weights(self, name, root_directory):
+        self.next_layer.save_weights(name=name, root_directory=root_directory)
+
+    def load_weights(self, name, root_directory):
+        self.next_layer.load_weights(name=name, root_directory=root_directory)
 
 class Flatten:
     '''
     Flatten layer input shape= (a, b, c), output shape= (a*b*c, 1)
     ------------------- shape ----------------------
-    input_shape                             ：a x b x c
-    output_shape                            ：a*b*c x 1
+    input_shape                             ：(a, b, c)
+    output_shape                            ：(a*b*c, 1)
     next_layer's gradient feed back shape   ：= output_shape
     gradient to last_layer shape            ：= input_shape
     ------------------- shape ----------------------
@@ -242,10 +283,23 @@ class Flatten:
     def BP(self, gradient, lr):
         self.last_layer.BP(gradient=gradient.reshape(self.input_shape), lr=lr)
 
+    # no parameters to save or load
+    def save_weights(self, name, root_directory):
+        self.next_layer.save_weights(name=name, root_directory=root_directory)
+
+    def load_weights(self, name, root_directory):
+        self.next_layer.load_weights(name=name, root_directory=root_directory)
+
 class Convolution2D:
     '''
     Convolution2D Layer
-    未完工
+    ------------------- shape ----------------------
+    input_shape                             ：(m, n, c) , c is channels number
+    kernal_shape                            : (k1, k2, filter_number)
+    output_shape                            ：(m-2*k1/2, n-2*k2/2, filter_number)
+    next_layer's gradient feed back shape   ：output_shape
+    gradient to last_layer shape            ：input_shape
+    ------------------- shape ----------------------
     '''
 
     def __init__(self, last_layer=None, kernal_number=1, kernal_size=(3,3), test_mod=False):
@@ -331,4 +385,16 @@ class Convolution2D:
                         self.grad_for_w[i][j][c][k] = np.sum(self.input[i:i+w1, j:j+w2, c] * self.gradient[..., k])
         self.kernals -= self.grad_for_w * lr
 
+    def save_weights(self, name, root_directory):
+        num = int(name) + 1
+        path = root_directory + '/' + str(num)
+        np.save(path, self.kernals)
+        print('save weights successfully, path is:', path)
+        self.next_layer.save_weights(name=str(num), root_directory=root_directory)
 
+    def load_weights(self, name, root_directory):
+        num = int(name) + 1
+        path = root_directory + '/' + str(num) + '.npy'
+        self.kernals = np.load(path)
+        print('load weights successfully, path is:', path)
+        self.next_layer.load_weights(name=str(num), root_directory=root_directory)

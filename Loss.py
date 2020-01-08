@@ -6,13 +6,14 @@ Author: Ruo Long Lee, Collage of Computer Science, Shen Zhen University
 '''
 
 '''
+工地英语警告↓
 Loss.py
 every loss function has two stationary function:
-get_error   : get the error between model's output and train target
-get_gradient: get the model's parameters' gradient from loss function
+get_error    : get the error between model's output and train target
+get_gradient : get the model's parameters' gradient from loss function
 
 每个损失函数必须有两个固定名字的方法：
-get_error    ：正向传播一次，得到一个误差
+get_error    ：正向传播一次，由模型的输出，得到一个误差
 get_gradient ：得到反向传播需要的梯度，即损失函数对最后输出层输出的梯度
 '''
 

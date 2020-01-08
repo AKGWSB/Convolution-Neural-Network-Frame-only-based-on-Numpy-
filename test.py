@@ -164,6 +164,7 @@ def dense_sin_test():
     model = Model(input_layer=input, output_layer=output, loss=mse)
 
     model.train_SGD(x_train_batch=x_train, y_train_batch=y_train, epoch=100, step_pre_epoch=400, lr=0.01)
+    # model.train_all_batch(x_train=x_train, y_train=y_train, epoch=1000, lr=0.01)
 
     res = []
     for i in range(360):
@@ -178,20 +179,21 @@ def dense_sin_test():
         # path = 'plots/' + str(xx) + ',jpg'
         # plt.savefig(path)
 
-def convolution_mnist_test():
+# ----------------- convolution mnist test -----------------
+def get_mnist_100():
     from keras.datasets import mnist
     (x_train, y_train), (x_test, y_test) = mnist.load_data()
     n_classes = 10
     x_train = np.expand_dims(x_train[0:100], -1) / 255
     y_train = np.expand_dims(np.eye(n_classes)[y_train[0:100]], -1)  # one hot labeling
-    # print(x_train.shape, y_train[0], y_train[0].shape)
 
+    return x_train, y_train
+
+def get_convolution_mnist_model():
     input = Input(input_shape=(28, 28, 1))
     conv = Convolution2D(last_layer=input, kernal_number=4, kernal_size=(3, 3))
     r = Relu(last_layer=conv)
     flatten = Flatten(last_layer=r)
-    # d1 = Dense(output_units=32, last_layer=flatten)
-    # r2 = Relu(last_layer=d1)
     d2 = Dense(output_units=10, last_layer=flatten)
     r3 = Relu(last_layer=d2)
     sm = Softmax(last_layer=r3)
@@ -200,27 +202,39 @@ def convolution_mnist_test():
     ce = Loss.Cross_entropy()
     model = Model(input_layer=input, output_layer=output, loss=ce)
 
+    return model
+
+def convolution_mnist_test():
+    x_train, y_train = get_mnist_100()
+    model = get_convolution_mnist_model()
     E = model.train_SGD(x_train_batch=x_train, y_train_batch=y_train, epoch=7, step_pre_epoch=100, lr=0.01)
+    model.save_weights(root_directory='weights')
+
+def load_weights_test():
+    x_train, y_train = get_mnist_100()
+    model = get_convolution_mnist_model()
+    model.load_weights(root_directory='weights')
 
     # test
     cnt = 0
     for i in range(100):
         o = model.predict(input=x_train[i])
-        o = o[..., 0]
-        t = y_train[i][..., 0]
+        t = y_train[i]
 
-        pl = np.argmax(o)
-        pt = np.argmax(t)
+        # convert (n, 1) to shape (n, )
+        o = o[..., 0]
+        t = t[..., 0]
+
+        pred = np.argmax(o)
+        true = np.argmax(t)
         print('output=', o)
         print('true=', t)
-        print('predict=', pl, 'true=', pt)
-        if pl == pt:
+        print('predict=', pred, 'true=', true)
+        if pred == true:
             cnt += 1
         print('\n')
     print('accruacy is ', cnt / 100)
-
-    plt.plot(E)
-    plt.show() 
+# -----------end of convolution mnist test -----------------
 
 if __name__ == '__main__':
 
@@ -230,6 +244,7 @@ if __name__ == '__main__':
     # dense_mnist_test()
     # dense_sin_test()
     convolution_mnist_test()
+    load_weights_test()
 
 
 

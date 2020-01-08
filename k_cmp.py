@@ -1,3 +1,5 @@
+# compare between my code and keras
+
 import keras
 from keras.datasets import mnist
 from keras.layers import Input, Dense, Flatten, ReLU, Softmax

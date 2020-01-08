@@ -6,29 +6,55 @@ Author: Ruo Long Lee, Collage of Computer Science, Shen Zhen University
       : 李若龙 深大计软
 '''
 
+'''
+工地英语警告↓
+class of a model, need an input_layer (class), an output_layer (class), and a loss function (class) to config
+model have some function like: train or predict, save/load weights
+
+模型类，需要一个输入层，输出层，和一个损失函数的实例化对象去进行初始化
+拥有一些常见的方法，比如训练，测试，保存模型等
+'''
+
 class Model:
 
+    # parameters:
+    # input_layer  : the input_layer  of your sequential model
+    # output_layer : the output_layer of your sequential model
     def __init__(self, input_layer=None, output_layer=None, loss=None):
         self.input_layer = input_layer
         self.output_layer = output_layer
         self.loss = loss
 
+    # parameters:
+    # name           : the sequential model's weights' name, range 1 ~ n    (dont't need to config this parameter)
+    # root_directory : the directory to save weights
+    def save_weights(self, root_directory):
+        self.input_layer.save_weights(name=0, root_directory=root_directory)
+
+    # parameters:
+    # name           : the sequential model's weights' name, range 1 ~ n    (dont't need to config this parameter)
+    # root_directory : the directory to save weights
+    def load_weights(self, root_directory):
+        self.input_layer.load_weights(name=0, root_directory=root_directory)
+
+    # parameters:
+    # input     : a single input sample, the shape of input must = model.input_layer.input_shape
+    # return    : the output of model
     def predict(self, input):
         self.input_layer.FP(x=input)
         output = self.output_layer.output
         return output
 
+    # parameters:
+    # input     : a single input sample, the shape of input must = input_shape
+    # target    : the expected output of model, shape = output_shape
     def train_once(self, input, target, lr):
         self.input_layer.FP(x=input)
         output = self.output_layer.output
-
         error = self.loss.get_error(output=output, target=target)
         gradient = self.loss.get_gradient()
 
         self.output_layer.BP(gradient=gradient, lr=lr)
-
-        # print('error: ', error)   # one hot label
-        # print(output, target)
 
         return error
 
@@ -60,9 +86,10 @@ class Model:
 
         return E
 
+    # --- Stochastic gradient descent ---
     # the input (x_train ) must be (batch_size, input_shape )
     # the output (y_train) must be (batch_size, output_shape)
-    # the first axis (0) of input / output batch is the size of batch
+    # the first axis (0) of input_batch / output_batch is the size of batch
     def train_SGD(self, x_train_batch, y_train_batch, epoch, step_pre_epoch, lr):
         E = []
         train_size = x_train_batch.shape[0]
