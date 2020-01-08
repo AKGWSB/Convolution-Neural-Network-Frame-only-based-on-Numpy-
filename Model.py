@@ -102,6 +102,6 @@ class Model:
                 print('epoch', xx+1, '/', epoch, ' step', i+1, '/', step_pre_epoch, ' error:', error)
                 # E.append(error)
                 e += error
-            E.append(e)
+            E.append(e/step_pre_epoch)
         return E
 

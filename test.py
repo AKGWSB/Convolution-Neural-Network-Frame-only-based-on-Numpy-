@@ -3,6 +3,7 @@ from matplotlib import pyplot as plt
 from Layers import Input, Output, Dense, Relu, Flatten, Convolution2D, Softmax, AveragePooling2D
 from Model import Model
 import Loss
+from util import Image_generator
 
 '''
 this .py is for test 
@@ -240,15 +241,30 @@ def load_weights_test():
     print('accruacy is ', cnt / 100)
 # -----------end of convolution mnist test -----------------
 
+def image_generator_test():
+    g = Image_generator()
+    x = np.array(plt.imread('test_pictures/' + "hl.jpg"), dtype=np.float64)
+    result = g.one_input_flow_batch(input=x)
+    for p in result:
+        plt.imshow(p/255)
+        plt.show()
+
 if __name__ == '__main__':
 
     # full_connect_network_test()
+
     # convolution_layer_test()
+
     # convolution_network_test()
+
     # dense_mnist_test()
+
     # dense_sin_test()
-    convolution_mnist_test()
-    load_weights_test()
+
+    # convolution_mnist_test()
+    # load_weights_test()
+
+    image_generator_test()
 
 
 
