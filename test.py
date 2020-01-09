@@ -3,7 +3,7 @@ from matplotlib import pyplot as plt
 from Layers import Input, Output, Dense, Relu, Flatten, Convolution2D, Softmax, AveragePooling2D
 from Model import Model
 import Loss
-from util import Image_generator
+from util import Image_generator, int_to_one_hot
 
 '''
 this .py is for test 
@@ -244,10 +244,13 @@ def load_weights_test():
 def image_generator_test():
     g = Image_generator()
     x = np.array(plt.imread('test_pictures/' + "hl.jpg"), dtype=np.float64)
-    result = g.one_input_flow_batch(input=x)
-    for p in result:
+    y = int_to_one_hot(3, 5)
+
+    x_train, y_train = g.one_input_flow_batch(input=x, label=y)
+    for p in x_train:
         plt.imshow(p/255)
         plt.show()
+    print(y_train, y_train.shape)
 
 if __name__ == '__main__':
 

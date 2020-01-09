@@ -1,12 +1,26 @@
 import numpy as np
 
+'''
+Author: Ruo Long Lee, Collage of Computer Science, Shen Zhen University
+      : 李若龙 深大计软
+'''
+
+def int_to_one_hot(x, n_classes):
+    return np.expand_dims(np.eye(n_classes)[x], -1)
+
 class Image_generator:
+
+    '''
+    1 image generator to 16
+    randomly flip, brightness change
+    '''
 
     def __init__(self):
         pass
 
     def one_input_flow_batch(self,
                        input,
+                       label,
                        batch_size=16,
                        is_flip_X=True,
                        is_flip_Y=True,
@@ -14,16 +28,24 @@ class Image_generator:
                        is_brighter=True
                        ):
         out_shape = [batch_size]
+        label_shape = [batch_size]
         for x in input.shape:
             out_shape.append(x)
         out_shape = tuple(out_shape)
-        # print(out_shape)
-        result = np.zeros(shape=out_shape)
 
-        fxcnt = 0
-        fycnt = 0
-        dcnt = 0
-        bcnt = 0
+        for x in label.shape:
+            label_shape.append(x)
+        label_shape = tuple(label_shape)
+
+        result = np.zeros(shape=out_shape)
+        label_ = np.zeros(shape=label_shape)
+        label_ += label
+
+        # for test
+        # fxcnt = 0
+        # fycnt = 0
+        # dcnt = 0
+        # bcnt = 0
         for i in range(batch_size):
             temp = input.copy()
 
@@ -45,10 +67,19 @@ class Image_generator:
             r = np.random.randint(0, 2)
             if r == 1 and is_brighter == True:
                 temp *= 1.2
+                temp = np.minimum(temp, 255)
                 # bcnt+=1
 
             result[i] = temp
 
         # print(fxcnt, fycnt, dcnt, bcnt)
-        return result
+        return result, label_
 
+    def multi_input_flow_batch(self,
+                               input_batch,
+                               is_flip_X=True,
+                               is_flip_Y=True,
+                               is_darker=True,
+                               is_brighter=True
+                               ):
+        pass
