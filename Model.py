@@ -105,3 +105,31 @@ class Model:
             E.append(e/step_pre_epoch)
         return E
 
+    def train_MBGD(self, x_train_batch, y_train_batch, epoch, step_pre_epoch, batch_pre_epoch, lr):
+        E = []
+        train_size = x_train_batch.shape[0]
+        for xx in range(epoch):
+            for i in range(step_pre_epoch):
+                # ridx = np.random.randint(0, train_size, size=(batch_pre_epoch, ))
+                ridx = np.random.choice(train_size, (batch_pre_epoch, 1))
+                e = 0
+                graidient = np.zeros(self.output_layer.output_shape)
+                for idxx in ridx:
+                    idx = np.sum(idxx)
+                    x = x_train_batch[idx]
+                    y = y_train_batch[idx]
+                    # print(x.shape, y.shape)
+                    self.input_layer.FP(x=x)
+                    output = self.output_layer.output
+                    error = self.loss.get_error(output=output, target=y)
+                    e += error
+                    g = self.loss.get_gradient()
+                    graidient += g
+                e /= batch_pre_epoch
+                graidient /= batch_pre_epoch
+                self.output_layer.BP(gradient=graidient, lr=lr)
+                print('epoch', xx+1, '/', epoch, 'error=', e)
+                E.append(e)
+
+
+

@@ -1,4 +1,5 @@
 import numpy as np
+import matplotlib.pyplot as plt
 
 '''
 Author: Ruo Long Lee, Collage of Computer Science, Shen Zhen University
@@ -39,7 +40,7 @@ class Input:
     # parameter
     # x : the x_train , input to model
     def FP(self, x):
-        self.input = x
+        self.input = x.copy()
         self.next_layer.FP(x=x)
 
     # end of back propagation
@@ -71,11 +72,12 @@ class Output:
     # Forward propagation
     # when FP called in output, output_layer.output = last_layer's output
     def FP(self, x):
-        self.output = x
+        self.output = x.copy()
 
     # Back propagation
-    def BP(self, gradient, lr=0.0001):
-        self.last_layer.BP(gradient=gradient, lr=lr)
+    def BP(self, gradient, lr=0.01):
+        self.gradient = gradient.copy()
+        self.last_layer.BP(gradient=self.gradient, lr=lr)
 
     # no parameters to save or load
     def save_weights(self, name, root_directory):
@@ -114,16 +116,19 @@ class Dense:
         # kaiming init :
         self.weights = np.random.rand(self.input_shape[0], self.output_shape[0])
         self.weights /= (0.5 * np.sqrt(self.input_shape[0] * self.output_shape[0]))
+        # self.weights /= np.sum(self.weights)
         #self.weights -= np.mean(self.weights)  # problem
+
         self.bias = np.random.rand(self.output_shape[0], 1)
         self.bias /= np.sum(self.bias)
         #self.bias -= np.mean(self.bias)    # problem
+        # self.bias = np.zeros((self.output_shape[0], 1))
 
     # Forward propagation
     # parameters
     # x : last layer's output
     def FP(self, x):
-        self.input = x
+        self.input = x.copy()
         self.output = self.weights.T.dot(self.input) + self.bias
         # print('output.shape = ',self.output.shape)
         self.next_layer.FP(x=self.output)
@@ -133,11 +138,13 @@ class Dense:
     # gradient : last layer's gradient
     # lr       : learning rate
     def BP(self, gradient, lr):
-        self.gradient = gradient
-
+        self.gradient = gradient.copy()
+        # print('self g',self.gradient.shape,  self.gradient)
         last_layer_gradient = self.weights.dot(self.gradient)
+        # print('dense pass g=', last_layer_gradient)
         self.last_layer.BP(gradient=last_layer_gradient, lr=lr)
 
+        # print('ds input=', self.input[..., -1])
         grad_for_w = np.tile(self.input.T, self.output_shape)   # gradient for weights
         self.weights -= (grad_for_w * self.gradient).T * lr
         self.bias -= self.gradient * lr  # gradient for bias mat is 1
@@ -187,14 +194,16 @@ class Relu:
         self.output_shape = self.input_shape
 
     def FP(self, x):
-        self.input = x
+        self.input = x.copy()
         self.next_layer.FP(x=np.maximum(x, 0))
 
     def BP(self, gradient, lr):
+        self.gradient = gradient.copy()
         # input>0, self.gradient = 1 * gradient , else self.gradient = 0
         select_mat = np.zeros(shape=self.input.shape)
-        select_mat = np.greater(self.input, select_mat)
-        self.last_layer_gradient = select_mat*gradient
+        select_mat = np.greater(self.input, select_mat).astype(np.int32)
+        self.last_layer_gradient = select_mat*self.gradient
+        # print('relu pass g=', self.last_layer_gradient)
         self.last_layer.BP(gradient=self.last_layer_gradient, lr=lr)
 
     # no parameters to save or load
@@ -226,14 +235,14 @@ class Softmax:
         self.output_shape = self.input_shape
 
     def FP(self, x):
-        self.input = x
+        self.input = x.copy()
         self.expi = np.exp(self.input)
         self.sum = np.sum(self.expi)
         self.output = self.expi / self.sum
         self.next_layer.FP(x=self.output)
 
     def BP(self, gradient, lr):
-        self.gradient = gradient
+        self.gradient = gradient.copy()
         self.tp = self.expi/self.sum
         self.last_layer_gradient = np.zeros(shape=self.input_shape)
 
@@ -241,12 +250,15 @@ class Softmax:
             self.gradient_for_Ii = np.zeros(shape=self.input_shape)
             for j in range(self.input_shape[0]):
                 if i == j:
-                    self.gradient_for_Ii[j] = self.output[i]*(1 - self.output[i])
+                    self.gradient_for_Ii[j] += self.output[i]*(1 - self.output[i])
                 else:
-                    self.gradient_for_Ii[j] = -1 * self.output[i] * self.output[j]
+                    self.gradient_for_Ii[j] += -1 * self.output[i] * self.output[j]
 
             self.last_layer_gradient[i] = np.sum(self.gradient_for_Ii * self.gradient)
 
+        # print('sm last_layer_g=', self.last_layer_gradient[..., -1])
+        # print('\n')
+        # print('sm pass g', self.last_layer_gradient)
         self.last_layer.BP(gradient=self.last_layer_gradient, lr=lr)
 
     # no parameters to save or load
@@ -278,10 +290,15 @@ class Flatten:
         self.output_shape = (np.prod(self.input_shape), 1)
 
     def FP(self, x):
-        self.next_layer.FP(x=np.expand_dims(x.flatten(), axis=-1))
+        self.input = x.copy()
+        self.next_layer.FP(x=self.input.reshape(self.output_shape))
 
     def BP(self, gradient, lr):
-        self.last_layer.BP(gradient=gradient.reshape(self.input_shape), lr=lr)
+        self.gradient = gradient.copy()
+        # print('flatten self g=', self.gradient)
+        self.last_layer_gradient = self.gradient.reshape(self.input_shape)
+        # print('flatten pass g=', self.last_layer_gradient)
+        self.last_layer.BP(gradient=self.last_layer_gradient, lr=lr)
 
     # no parameters to save or load
     def save_weights(self, name, root_directory):
@@ -316,7 +333,10 @@ class Convolution2D:
         # parameters' shape config & init
         # (kernal_size[0], kernal_siez[1], last_layer's output's channel_number), kernal_number
         self.kernals = np.random.rand(kernal_size[0], kernal_size[1], self.input_shape[-1], kernal_number)
-        self.kernals /= np.sum(self.kernals)
+        # self.kernals = np.ones((kernal_size[0], kernal_size[1], self.input_shape[-1], kernal_number))
+        # self.kernals /= np.sum(self.kernals)  # problem
+        self.kernals /= (self.kernals.shape[0] * self.kernals.shape[1] * 0.5)
+        self.bias = np.zeros(shape=self.output_shape)
 
         # Laplace Operator test
         self.test_mod = test_mod
@@ -327,7 +347,7 @@ class Convolution2D:
             self.kernals[..., 0] = temp
 
     def FP(self, x):
-        self.input = x
+        self.input = x.copy()
         self.output = np.zeros(shape=self.output_shape)
 
         # width bias
@@ -344,46 +364,64 @@ class Convolution2D:
                         self.output[i][j][k] = np.minimum(np.maximum(np.sum(filter * self.input[i:i+w1, j:j+w2]), 0), 255)
                     else:
                         # train, unlimited
-                        self.output[i][j][k] = np.sum(filter * self.input[i:i + w1, j:j + w2])
+                        self.output[i][j][k] += np.sum(filter * self.input[i:i + w1, j:j + w2])
+            # plt.imshow(np.maximum(np.minimum(self.output[..., k], 1), 0), cmap='gray')
+            # plt.show()
 
+        # self.output += self.bias
+        # print('conv output=', self.output)
         self.next_layer.FP(x=self.output)
 
     def BP(self, gradient, lr):
-        self.gradient = gradient
+        self.gradient = gradient.copy()
+        # print('conv g=', self.gradient)
 
-        # weights flip 180 degree
-        self.w_flip = np.flip(np.flip(self.kernals, 0), 1)
-        # padding gradient
-        gl1 = self.gradient.shape[0]        # 回传梯度的形状
-        gl2 = self.gradient.shape[1]
-        b1 = int(self.kernals.shape[0]/2)   # 卷积卷掉的像素个数
-        b2 = int(self.kernals.shape[1]/2)
-        ks1 = self.kernals.shape[0]         # 卷积核形状
-        ks2 = self.kernals.shape[1]
-        self.gradient_pad = np.zeros(shape=(gl1+4*b1, gl2+4*b2, self.kernal_number))
-        self.gradient_pad[2*b1:2*b1+gl1, 2*b2:2*b2+gl2] = self.gradient
-        self.last_layer_gradient = np.zeros(shape=self.input_shape)
-        # convolution for calculate last_layer's gradient
-        for k in range(self.kernal_number):
-            for i in range(self.input_shape[0]):
-                for j in range(self.input_shape[1]):
-                    for c in range(self.input_shape[2]):
-                        self.last_layer_gradient[i][j][c] += np.sum(self.gradient_pad[i:i+ks1, j:j+ks2, c]*self.w_flip[..., c, k])
-
-        self.last_layer.BP(gradient=self.last_layer_gradient, lr=lr)
+        # # weights flip 180 degree
+        # self.w_flip = np.flip(np.flip(self.kernals.copy(), 0), 1)
+        # # self.w_flip = self.kernals.copy()
+        # # padding gradient
+        # gl1 = self.gradient.shape[0]        # 回传梯度的形状
+        # gl2 = self.gradient.shape[1]
+        # b1 = int(self.kernals.shape[0]/2)   # 卷积卷掉的像素个数
+        # b2 = int(self.kernals.shape[1]/2)
+        # ks1 = self.kernals.shape[0]         # 卷积核形状
+        # ks2 = self.kernals.shape[1]
+        # self.gradient_pad = np.zeros(shape=(gl1+4*b1, gl2+4*b2, self.kernal_number))
+        # self.gradient_pad[2*b1:2*b1+gl1, 2*b2:2*b2+gl2] = self.gradient.copy()
+        # self.last_layer_gradient = np.zeros(shape=self.input_shape)
+        # # convolution for calculate last_layer's gradient
+        # for k in range(self.kernal_number):
+        #     for i in range(self.input_shape[0]):
+        #         for j in range(self.input_shape[1]):
+        #             for c in range(self.input_shape[2]):
+        #                 self.last_layer_gradient[i][j][c] += np.sum(self.gradient_pad[i:i+ks1, j:j+ks2, c]*self.w_flip[..., c, k])
+        #
+        # self.last_layer.BP(gradient=self.last_layer_gradient, lr=lr)
 
         # convolution for updating weights
         w1 = self.output_shape[0]
         w2 = self.output_shape[1]
-        self.grad_for_w = np.zeros(shape=self.kernals.shape)
+        #////////////////////////////////////////////////////////////#
+        # self.grad_for_w = np.zeros(shape=self.kernals.shape)
         # for every kernals
+        #     for k in range(self.kernal_number):
+        #         for i in range(self.kernals.shape[0]):
+        #             for j in range(self.kernals.shape[1]):
+        #                 # for RGB channels
+        #                 for c in range(self.kernals.shape[2]):
+        #                     # self.grad_for_w[i][j][c][k] += np.sum(self.input[i:i+w1, j:j+w2, c] * self.gradient[..., k])
+        #                     self.kernals[i][j][c][k] -= np.sum(self.input[i:i+w1, j:j+w2, c] * self.gradient[..., k]) * lr
+        # ////////////////////////////////////////////////////////////#
         for k in range(self.kernal_number):
-            for i in range(self.kernals.shape[0]):
-                for j in range(self.kernals.shape[1]):
-                    # for RGB channels
-                    for c in range(self.kernals.shape[2]):
-                        self.grad_for_w[i][j][c][k] = np.sum(self.input[i:i+w1, j:j+w2, c] * self.gradient[..., k])
-        self.kernals -= self.grad_for_w * lr
+            gk = self.gradient[..., k]
+            for c in range(self.kernals.shape[2]):
+                Ich = self.input[..., c]
+                for i in range(self.kernals.shape[0]):
+                    for j in range(self.kernals.shape[1]):
+                        self.kernals[i][j][c][k] -= np.sum(Ich[i:i+w1, j:j+w2] * gk) * lr
+        # print('gfw=', self.grad_for_w)
+        # self.kernals -= self.grad_for_w * lr
+        # self.bias -= self.gradient * lr
 
     def save_weights(self, name, root_directory):
         num = int(name) + 1
@@ -427,24 +465,33 @@ class AveragePooling2D:
         self.output_shape[1]  = int(self.input_shape[1] // 2)
         self.output_shape = tuple(self.output_shape)
 
+        # print('av config --  shape=', self.output_shape)
+
         self.step = step
 
     def FP(self, x):
-        self.input = x
+        self.input = x.copy()
         self.output = np.zeros(shape=self.output_shape)
         for i in range(self.output_shape[0]):
             for j in range(self.output_shape[1]):
                 for c in range(self.output_shape[2]):
-                    self.output[i][j][c] = np.sum(self.input[2*i:2*i+self.step, 2*j:2*j+self.step, c]) / self.step*self.step
+                    self.output[i][j][c] += np.sum(self.input[2*i:2*i+self.step, 2*j:2*j+self.step, c]) / (self.step*self.step)
+
+        # print('av output shape=', self.output.shape)
+        # if self.output_shape[2] == 3:
+        #     plt.imshow(self.output)
+        #     plt.show()
         self.next_layer.FP(x=self.output)
 
     def BP(self, gradient, lr):
-        self.gradient = gradient
+        self.gradient = gradient.copy()
+        # print('av g', self.gradient)
         self.last_layer_gradient = np.zeros(shape=self.input_shape)
         for i in range(self.output_shape[0]):
             for j in range(self.output_shape[1]):
                 for c in range(self.output_shape[2]):
-                    self.last_layer_gradient[2*i:2*i+self.step][2*j:2*j+self.step][c:c+1] = self.gradient[i][j][c] / self.step*self.step
+                    self.last_layer_gradient[2*i:2*i+self.step, 2*j:2*j+self.step, c:c+1] += self.gradient[i][j][c] / (self.step*self.step)
+        # print('av pass g=', self.last_layer_gradient)
         self.last_layer.BP(gradient=self.last_layer_gradient, lr=lr)
 
     # no parameters to save or load
