@@ -36,6 +36,8 @@ class Input:
         # IO shape config
         self.output_shape = input_shape
 
+        self.trainable = False
+
     # Forward propagation
     # param x : last layer's output
     # 前向传播
@@ -70,6 +72,8 @@ class Output:
         self.last_layer.next_layer = self
 
         self.output_shape = self.last_layer.output_shape
+
+        self.trainable = False
 
     # Forward propagation
     # when FP called in output, output_layer.output = last_layer's output
@@ -124,6 +128,8 @@ class Dense:
         limit = np.sqrt(6/(self.input_shape[0]+self.output_shape[0]))
         self.weights = np.random.uniform(-1*limit, limit, size=(self.input_shape[0], self.output_shape[0]))
         self.bias = np.zeros((self.output_shape[0], 1))
+
+        self.trainable = True
 
     # Forward propagation
     # param x : last layer's output
@@ -185,6 +191,8 @@ class Relu:
         self.input_shape = self.last_layer.output_shape
         self.output_shape = self.input_shape
 
+        self.trainable = False
+
     # Forward propagation
     # param x : last layer's output
     # 前向传播
@@ -235,6 +243,8 @@ class Softmax:
         # IO shape config
         self.input_shape = self.last_layer.output_shape
         self.output_shape = self.input_shape
+
+        self.trainable = False
 
     # Forward propagation
     # param x : last layer's output
@@ -301,6 +311,8 @@ class Flatten:
         self.input_shape = self.last_layer.output_shape
         self.output_shape = (np.prod(self.input_shape), 1)
 
+        self.trainable = False
+
     # Forward propagation
     # param x : last layer's output
     # 前向传播
@@ -359,6 +371,17 @@ class Convolution2D:
         limit = np.sqrt(6/(np.prod((kernal_size[0], kernal_size[1], self.input_shape[-1], kernal_number))))
         self.kernals = np.random.uniform(-1*limit, limit, size=(kernal_size[0], kernal_size[1], self.input_shape[-1], kernal_number))
 
+        self.trainable = True
+
+        # find last layers is to train or not, if dont't need to train , avoid to count gradient for last_layer when BP
+        # 查找上面的层是否是可训练的，如果上面不存在可训练的层，不需要计算回传梯度，节约时间
+        layer_p = self.last_layer
+        self.need_to_BP = False
+        while layer_p.last_layer != None:
+            if last_layer.trainable == True:
+                self.need_to_BP = True
+            layer_p = last_layer.last_layer
+
     # Forward propagation
     # param x : last layer's output
     # 前向传播
@@ -387,26 +410,27 @@ class Convolution2D:
     def BP(self, gradient, lr):
         self.gradient = gradient.copy()
 
-        # # weights flip 180 degree
-        # self.w_flip = np.flip(np.flip(self.kernals.copy(), 0), 1)
-        # # padding gradient
-        # gl1 = self.gradient.shape[0]        # 回传梯度的形状
-        # gl2 = self.gradient.shape[1]
-        # b1 = int(self.kernals.shape[0]/2)   # 卷积卷掉的像素个数
-        # b2 = int(self.kernals.shape[1]/2)
-        # ks1 = self.kernals.shape[0]         # 卷积核形状
-        # ks2 = self.kernals.shape[1]
-        # self.gradient_pad = np.zeros(shape=(gl1+4*b1, gl2+4*b2, self.kernal_number))
-        # self.gradient_pad[2*b1:2*b1+gl1, 2*b2:2*b2+gl2] = self.gradient.copy()
-        # self.last_layer_gradient = np.zeros(shape=self.input_shape)
-        # # convolution for calculate last_layer's gradient
-        # for k in range(self.kernal_number):
-        #     for i in range(self.input_shape[0]):
-        #         for j in range(self.input_shape[1]):
-        #             for c in range(self.input_shape[2]):
-        #                 self.last_layer_gradient[i][j][c] += np.sum(self.gradient_pad[i:i+ks1, j:j+ks2, c]*self.w_flip[..., c, k])
-        #
-        # self.last_layer.BP(gradient=self.last_layer_gradient, lr=lr)
+        if self.need_to_BP == True:
+            # weights flip 180 degree
+            self.w_flip = np.flip(np.flip(self.kernals.copy(), 0), 1)
+            # padding gradient
+            gl1 = self.gradient.shape[0]        # 回传梯度的形状
+            gl2 = self.gradient.shape[1]
+            b1 = int(self.kernals.shape[0]/2)   # 卷积卷掉的像素个数
+            b2 = int(self.kernals.shape[1]/2)
+            ks1 = self.kernals.shape[0]         # 卷积核形状
+            ks2 = self.kernals.shape[1]
+            self.gradient_pad = np.zeros(shape=(gl1+4*b1, gl2+4*b2, self.kernal_number))
+            self.gradient_pad[2*b1:2*b1+gl1, 2*b2:2*b2+gl2] = self.gradient.copy()
+            self.last_layer_gradient = np.zeros(shape=self.input_shape)
+            # convolution for calculate last_layer's gradient
+            for k in range(self.kernal_number):
+                for i in range(self.input_shape[0]):
+                    for j in range(self.input_shape[1]):
+                        for c in range(self.input_shape[2]):
+                            self.last_layer_gradient[i][j][c] += np.sum(self.gradient_pad[i:i+ks1, j:j+ks2, c]*self.w_flip[..., c, k])
+
+            self.last_layer.BP(gradient=self.last_layer_gradient, lr=lr)
 
         # convolution for updating weights
         # 更新卷积核：使用上一层回传的梯度（卷积层输出对损失函数的梯度）作为卷积核，卷积输入矩阵
@@ -485,6 +509,7 @@ class AveragePooling2D:
         self.output_shape = tuple(self.output_shape)
 
         self.step = step
+        self.trainable = False
 
     # Forward propagation
     # param x : last layer's output
