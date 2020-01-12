@@ -53,8 +53,9 @@ class Model:
         output = self.output_layer.output
         error = self.loss.get_error(output=output, target=target)
         gradient = self.loss.get_gradient()
-
         self.output_layer.BP(gradient=gradient, lr=lr)
+
+        print('output=', output[..., 0], 'target=', target[..., 0])
 
         return error
 

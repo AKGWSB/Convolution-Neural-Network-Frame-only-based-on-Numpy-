@@ -113,16 +113,18 @@ class Dense:
         self.output_shape = (output_units, 1)
 
         # parameters' shape config & init
-        # kaiming init :
-        self.weights = np.random.rand(self.input_shape[0], self.output_shape[0])
-        self.weights /= (0.5 * np.sqrt(self.input_shape[0] * self.output_shape[0]))
+        # glorot_uniform init :
+        limit = np.sqrt(6/(self.input_shape[0]+self.output_shape[0]))
+        self.weights = np.random.uniform(-1*limit, limit, size=(self.input_shape[0], self.output_shape[0]))
+        # self.weights /= (0.5 * np.sqrt(self.input_shape[0] * self.output_shape[0]))
+
+        # self.weights /= (0.5 * self.input_shape[0])
         # self.weights /= np.sum(self.weights)
         #self.weights -= np.mean(self.weights)  # problem
 
-        self.bias = np.random.rand(self.output_shape[0], 1)
-        self.bias /= np.sum(self.bias)
-        #self.bias -= np.mean(self.bias)    # problem
-        # self.bias = np.zeros((self.output_shape[0], 1))
+        self.bias = np.zeros((self.output_shape[0], 1))
+        # self.bias = np.random.rand(self.output_shape[0], 1)
+        # self.bias /= np.sum(self.bias)
 
     # Forward propagation
     # parameters
@@ -244,21 +246,20 @@ class Softmax:
     def BP(self, gradient, lr):
         self.gradient = gradient.copy()
         self.tp = self.expi/self.sum
-        self.last_layer_gradient = np.zeros(shape=self.input_shape)
+        self.last_layer_gradient = np.zeros(shape=self.input_shape, dtype=np.float64)
 
         for i in range(self.input_shape[0]):
-            self.gradient_for_Ii = np.zeros(shape=self.input_shape)
+            self.gradient_for_Ii = np.zeros(shape=self.input_shape, dtype=np.float64)
+
             for j in range(self.input_shape[0]):
                 if i == j:
-                    self.gradient_for_Ii[j] += self.output[i]*(1 - self.output[i])
+                    self.gradient_for_Ii[j] = self.output[i]*(1 - self.output[i])
                 else:
-                    self.gradient_for_Ii[j] += -1 * self.output[i] * self.output[j]
+                    self.gradient_for_Ii[j] = -1 * self.output[i] * self.output[j]
 
             self.last_layer_gradient[i] = np.sum(self.gradient_for_Ii * self.gradient)
 
-        # print('sm last_layer_g=', self.last_layer_gradient[..., -1])
-        # print('\n')
-        # print('sm pass g', self.last_layer_gradient)
+        # print('sm pass g', self.last_layer_gradient[..., 0])
         self.last_layer.BP(gradient=self.last_layer_gradient, lr=lr)
 
     # no parameters to save or load
@@ -329,26 +330,31 @@ class Convolution2D:
         self.kernal_number = kernal_number
         self.input_shape = self.last_layer.output_shape
         self.output_shape = (self.input_shape[0]-2*int(kernal_size[0]/2), self.input_shape[1]-2*int(kernal_size[1]/2), self.kernal_number)
+        # self.output = np.zeros(shape=self.output_shape, dtype=np.float64)
 
         # parameters' shape config & init
         # (kernal_size[0], kernal_siez[1], last_layer's output's channel_number), kernal_number
-        self.kernals = np.random.rand(kernal_size[0], kernal_size[1], self.input_shape[-1], kernal_number)
+        # self.kernals = np.random.rand(kernal_size[0], kernal_size[1], self.input_shape[-1], kernal_number)
         # self.kernals = np.ones((kernal_size[0], kernal_size[1], self.input_shape[-1], kernal_number))
         # self.kernals /= np.sum(self.kernals)  # problem
-        self.kernals /= (self.kernals.shape[0] * self.kernals.shape[1] * 0.5)
-        self.bias = np.zeros(shape=self.output_shape)
+        # self.kernals /= (self.kernals.shape[0] * self.kernals.shape[1] * self.kernals.shape[2] * 0.5)
+        # self.bias = np.zeros(shape=self.output_shape)
 
-        # Laplace Operator test
-        self.test_mod = test_mod
-        if self.test_mod == True:
-            # using Laplace Operator for convolution
-            temp = [[-1, -1, -1], [-1, 8, -1], [-1, -1, -1]]
-            self.kernals = np.random.rand(3, 3, 1)
-            self.kernals[..., 0] = temp
+        limit = np.sqrt(6/(np.prod((kernal_size[0], kernal_size[1], self.input_shape[-1], kernal_number))))
+        self.kernals = np.random.uniform(-1*limit, limit, size=(kernal_size[0], kernal_size[1], self.input_shape[-1], kernal_number))
+        # self.kernals = np.random.rand(kernal_size[0], kernal_size[1], self.input_shape[-1], kernal_number)
+
+        # # Laplace Operator test
+        # self.test_mod = test_mod
+        # if self.test_mod == True:
+        #     # using Laplace Operator for convolution
+        #     temp = [[-1, -1, -1], [-1, 8, -1], [-1, -1, -1]]
+        #     self.kernals = np.random.rand(3, 3, 1)
+        #     self.kernals[..., 0] = temp
 
     def FP(self, x):
         self.input = x.copy()
-        self.output = np.zeros(shape=self.output_shape)
+        self.output = np.zeros(shape=self.output_shape, dtype=np.float64)
 
         # width bias
         w1 = self.kernals.shape[0]
@@ -359,12 +365,12 @@ class Convolution2D:
             filter = self.kernals[..., k]
             for i in range(self.output_shape[0]):
                 for j in range(self.output_shape[1]):
-                    if self.test_mod == True:
-                        # for img show, auto double limit to 0~255
-                        self.output[i][j][k] = np.minimum(np.maximum(np.sum(filter * self.input[i:i+w1, j:j+w2]), 0), 255)
-                    else:
+                    # if self.test_mod == True:
+                    #     # for img show, auto double limit to 0~255
+                    #     self.output[i][j][k] = np.minimum(np.maximum(np.sum(filter * self.input[i:i+w1, j:j+w2]), 0), 255)
+                    # else:
                         # train, unlimited
-                        self.output[i][j][k] += np.sum(filter * self.input[i:i + w1, j:j + w2])
+                        self.output[i][j][k] = np.sum(filter * self.input[i:i + w1, j:j + w2])
             # plt.imshow(np.maximum(np.minimum(self.output[..., k], 1), 0), cmap='gray')
             # plt.show()
 
@@ -372,13 +378,27 @@ class Convolution2D:
         # print('conv output=', self.output)
         self.next_layer.FP(x=self.output)
 
+    def get_o(self, x):
+        self.input = x.copy()
+        self.output_ = np.zeros(shape=self.output_shape, dtype=np.float64)
+
+        # width bias
+        w1 = self.kernals.shape[0]
+        w2 = self.kernals.shape[1]
+
+        # Convolution2D
+        for k in range(self.kernal_number):
+            filter = self.kernals[..., k]
+            for i in range(self.output_shape[0]):
+                for j in range(self.output_shape[1]):
+                        self.output_[i][j][k] = np.sum(filter * self.input[i:i + w1, j:j + w2])
+        return self.output_
+
     def BP(self, gradient, lr):
         self.gradient = gradient.copy()
-        # print('conv g=', self.gradient)
 
         # # weights flip 180 degree
         # self.w_flip = np.flip(np.flip(self.kernals.copy(), 0), 1)
-        # # self.w_flip = self.kernals.copy()
         # # padding gradient
         # gl1 = self.gradient.shape[0]        # 回传梯度的形状
         # gl2 = self.gradient.shape[1]
@@ -401,27 +421,16 @@ class Convolution2D:
         # convolution for updating weights
         w1 = self.output_shape[0]
         w2 = self.output_shape[1]
-        #////////////////////////////////////////////////////////////#
-        # self.grad_for_w = np.zeros(shape=self.kernals.shape)
-        # for every kernals
-        #     for k in range(self.kernal_number):
-        #         for i in range(self.kernals.shape[0]):
-        #             for j in range(self.kernals.shape[1]):
-        #                 # for RGB channels
-        #                 for c in range(self.kernals.shape[2]):
-        #                     # self.grad_for_w[i][j][c][k] += np.sum(self.input[i:i+w1, j:j+w2, c] * self.gradient[..., k])
-        #                     self.kernals[i][j][c][k] -= np.sum(self.input[i:i+w1, j:j+w2, c] * self.gradient[..., k]) * lr
-        # ////////////////////////////////////////////////////////////#
+        self.gfw = np.zeros(self.kernals.shape) # gradient for weights
         for k in range(self.kernal_number):
             gk = self.gradient[..., k]
             for c in range(self.kernals.shape[2]):
                 Ich = self.input[..., c]
                 for i in range(self.kernals.shape[0]):
                     for j in range(self.kernals.shape[1]):
-                        self.kernals[i][j][c][k] -= np.sum(Ich[i:i+w1, j:j+w2] * gk) * lr
-        # print('gfw=', self.grad_for_w)
-        # self.kernals -= self.grad_for_w * lr
-        # self.bias -= self.gradient * lr
+                        # self.kernals[i][j][c][k] -= np.sum(Ich[i:i+w1, j:j+w2] * gk) * lr
+                        self.gfw[i][j][c][k] = np.sum(Ich[i:i+w1, j:j+w2] * gk) * lr
+        self.kernals -= self.gfw
 
     def save_weights(self, name, root_directory):
         num = int(name) + 1
@@ -471,11 +480,11 @@ class AveragePooling2D:
 
     def FP(self, x):
         self.input = x.copy()
-        self.output = np.zeros(shape=self.output_shape)
+        self.output = np.zeros(shape=self.output_shape, dtype=np.float64)
         for i in range(self.output_shape[0]):
             for j in range(self.output_shape[1]):
                 for c in range(self.output_shape[2]):
-                    self.output[i][j][c] += np.sum(self.input[2*i:2*i+self.step, 2*j:2*j+self.step, c]) / (self.step*self.step)
+                    self.output[i][j][c] = np.sum(self.input[2*i:2*i+self.step, 2*j:2*j+self.step, c]) / (self.step*self.step)
 
         # print('av output shape=', self.output.shape)
         # if self.output_shape[2] == 3:
@@ -486,11 +495,11 @@ class AveragePooling2D:
     def BP(self, gradient, lr):
         self.gradient = gradient.copy()
         # print('av g', self.gradient)
-        self.last_layer_gradient = np.zeros(shape=self.input_shape)
+        self.last_layer_gradient = np.zeros(shape=self.input_shape, dtype=np.float64)
         for i in range(self.output_shape[0]):
             for j in range(self.output_shape[1]):
                 for c in range(self.output_shape[2]):
-                    self.last_layer_gradient[2*i:2*i+self.step, 2*j:2*j+self.step, c:c+1] += self.gradient[i][j][c] / (self.step*self.step)
+                    self.last_layer_gradient[2*i:2*i+self.step, 2*j:2*j+self.step, c:c+1] = self.gradient[i][j][c] / (self.step*self.step)
         # print('av pass g=', self.last_layer_gradient)
         self.last_layer.BP(gradient=self.last_layer_gradient, lr=lr)
 

@@ -164,7 +164,16 @@ def dense_sin_test():
     mse = Loss.Mean_squared_error()
     model = Model(input_layer=input, output_layer=output, loss=mse)
 
-    model.train_SGD(x_train_batch=x_train, y_train_batch=y_train, epoch=100, step_pre_epoch=800, lr=0.01)
+    # shuffle is bery bery important !!!!!!!
+    date_len = x_train.shape[0]
+    print(x_train.shape, y_train.shape)
+    from random import shuffle
+    index = [i for i in range(date_len)]
+    shuffle(index)
+    x_train_sf = x_train[index, :, :]
+    y_train_sf = y_train[index, :, :]
+
+    model.train_SGD(x_train_batch=x_train_sf, y_train_batch=y_train_sf, epoch=100, step_pre_epoch=800, lr=0.01)
     # model.train_all_batch(x_train=x_train, y_train=y_train, epoch=1000, lr=0.01)
 
     res = []
@@ -333,14 +342,14 @@ if __name__ == '__main__':
 
     # dense_mnist_test()
 
-    # dense_sin_test()
+    dense_sin_test()
 
     # convolution_mnist_test()
     # load_weights_test()
 
     # image_generator_test()
 
-    cnn_test()
+    # cnn_test()
 
 
 

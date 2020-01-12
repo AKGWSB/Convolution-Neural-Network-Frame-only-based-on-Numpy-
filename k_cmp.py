@@ -10,6 +10,7 @@ from matplotlib import pyplot as plt
 from Model import Model
 import Loss
 from util import Image_generator, int_to_one_hot
+from train import data_prepare
 
 # import keras.backend as k
 # k.categorical_crossentropy()
@@ -33,49 +34,12 @@ if __name__ == '__main__':
     # model.compile(optimizer='SGD', loss='categorical_crossentropy')
     # model.fit(x=x_train, y=y_train, epochs=100, batch_size=1)
 
-    # date preprocess
-    g = Image_generator()
-    x_train = np.zeros(shape=(48, 80, 80, 3))
-    y_train = np.zeros(shape=(48, 3, 1))
-    n_classes = 3
-
-    # , is_brighter=False, is_darker=False, is_flip_X=False, is_flip_Y=False
-    temp_img = np.array(plt.imread('test_pictures/train_picture/1.jpg'), dtype=np.float64)
-    temp_label = int_to_one_hot(x=0, n_classes=n_classes)
-    x_train[0:16], y_train[0:16] = g.one_input_flow_batch(input=temp_img, label=temp_label, batch_size=16)
-
-    temp_img = np.array(plt.imread('test_pictures/train_picture/2.jpg'), dtype=np.float64)
-    temp_label = int_to_one_hot(x=1, n_classes=n_classes)
-    x_train[16:32], y_train[16:32] = g.one_input_flow_batch(input=temp_img, label=temp_label, batch_size=16)
-
-    temp_img = np.array(plt.imread('test_pictures/train_picture/3.jpg'), dtype=np.float64)
-    temp_label = int_to_one_hot(x=2, n_classes=n_classes)
-    x_train[32:48], y_train[32:48] = g.one_input_flow_batch(input=temp_img, label=temp_label, batch_size=16)
-
-    # x_train = np.zeros(shape=(3, 80, 80, 3))
-    # y_train = np.zeros(shape=(3, 3, 1))
-    # y_train[0] = int_to_one_hot(0, 3)
-    # y_train[1] = int_to_one_hot(1, 3)
-    # y_train[2] = int_to_one_hot(2, 3)
-    # x_train[0] = np.array(plt.imread('test_pictures/train_picture/1.jpg'), dtype=np.float64)
-    # x_train[1] = np.array(plt.imread('test_pictures/train_picture/2.jpg'), dtype=np.float64)
-    # x_train[2] = np.array(plt.imread('test_pictures/train_picture/3.jpg'), dtype=np.float64)
-
-    x_train /= 255
+    x_train, y_train = data_prepare()
     y_train = np.squeeze(y_train, axis=-1)
 
-    # for x in x_train:
-    #     plt.imshow(x)
-    #     plt.show()
-    # print(y_train)
-    # print(x_train)
-
-    print(x_train.shape, y_train.shape)
-
     input = Input((80, 80, 3))
-    av = AveragePooling2D()(input)
-    avv = AveragePooling2D()(av)
-    conv1 = Convolution2D(filters=8, kernel_size=(3, 3), use_bias=False)(avv)
+    # av = AveragePooling2D()(input)
+    conv1 = Convolution2D(filters=8, kernel_size=(3, 3), use_bias=False)(input)
     r1 = ReLU()(conv1)
     av1 = AveragePooling2D()(r1)
     f = Flatten()(av1)
@@ -83,21 +47,53 @@ if __name__ == '__main__':
     d2 = Dense(units=3)(d1)
     sm = Softmax()(d2)
     model = keras.models.Model(input, sm)
-    sgd = keras.optimizers.SGD(lr=0.01)
+    sgd = keras.optimizers.SGD(lr=0.001)
+    # model.compile(optimizer=sgd, loss='mean_squared_error')
+    m_conv =  keras.models.Model(input, conv1)
     model.compile(optimizer=sgd, loss='categorical_crossentropy')
-    model.fit(x=x_train, y=y_train, epochs=5, shuffle=True, batch_size=1)
+
+    # x = x_train[0:1]
+    # y = y_train[0:1]
+    # plt.imshow(x[0])
+    # plt.show()
+    # E = []
+    # for j in range(1):
+    #     for i in range(30):
+    #         # cc = m_conv.predict(x)
+    #         # print(cc)
+    #         rr = model.predict(x)
+    #         # r = model.train_on_batch(x=x, y=y)
+    #         r = model.train_on_batch(x=x, y=y)
+    #         print(j, i, rr, r)
+    #         E.append(r)
+    # plt.plot(E)
+    # plt.show()
+
+    # shuffle is important !!!!!!!
+    date_len = x_train.shape[0]
+    from random import shuffle
+    index = [i for i in range(date_len)]
+    shuffle(index)
+    x_train = x_train[index, :, :, :]
+    y_train = y_train[index, :]
+
+    # model.fit(x=x_train, y=y_train, epochs=1, shuffle=True, batch_size=1)
+    for j in range(7):
+        for i in range(x_train.shape[0]):
+            r = model.train_on_batch(x_train[i:i+1], y_train[i:i+1])
+            print('e:', j, i, '/', x_train.shape[0],r)
 
     # test
     cnt = 0
-    oo = model.predict(x_train)
-    for i in range(48):
-        # o = model.predict(x_train[i])
-        o = oo[i]
+    for i in range(35 * 16):
+        # plt.imshow(x_train[i])
+        # plt.show()
+        o = model.predict(np.expand_dims(x_train[i], axis=0))
         t = y_train[i]
 
         # convert (n, 1) to shape (n, )
         # o = o[..., 0]
-
+        # t = t[..., 0]
 
         pred = np.argmax(o)
         true = np.argmax(t)
@@ -107,5 +103,6 @@ if __name__ == '__main__':
         if pred == true:
             cnt += 1
         print('\n')
-    print('accruacy is ', cnt / 48)
+    print('accruacy is ', cnt / (35 * 16))
+
 
