@@ -20,6 +20,10 @@ class Model:
     # parameters:
     # input_layer  : the input_layer  of your sequential model
     # output_layer : the output_layer of your sequential model
+    # loss         : the loss function for model
+    # input_layer  : 模型的输入层
+    # output_layer : 模型的输出层
+    # loss         : 模型的损失函数
     def __init__(self, input_layer=None, output_layer=None, loss=None):
         self.input_layer = input_layer
         self.output_layer = output_layer
@@ -28,18 +32,23 @@ class Model:
     # parameters:
     # name           : the sequential model's weights' name, range 1 ~ n    (dont't need to config this parameter)
     # root_directory : the directory to save weights
+    # name           : 按照顺序保存模型的参数矩阵，名字的顺序
+    # root_directory : 模型参数保存的根目录
     def save_weights(self, root_directory):
         self.input_layer.save_weights(name=0, root_directory=root_directory)
 
     # parameters:
     # name           : the sequential model's weights' name, range 1 ~ n    (dont't need to config this parameter)
     # root_directory : the directory to save weights
+    # name           : 按照顺序加载模型的参数矩阵，名字的顺序
+    # root_directory : 模型参数保存的根目录
     def load_weights(self, root_directory):
         self.input_layer.load_weights(name=0, root_directory=root_directory)
 
     # parameters:
     # input     : a single input sample, the shape of input must = model.input_layer.input_shape
     # return    : the output of model
+    # input     : 一次预测，输入尺寸必须等于模型的输入尺寸
     def predict(self, input):
         self.input_layer.FP(x=input)
         output = self.output_layer.output
@@ -48,6 +57,8 @@ class Model:
     # parameters:
     # input     : a single input sample, the shape of input must = input_shape
     # target    : the expected output of model, shape = output_shape
+    # input     : 一次训练的输入
+    # target    : 输入对应的期望结果
     def train_once(self, input, target, lr):
         self.input_layer.FP(x=input)
         output = self.output_layer.output

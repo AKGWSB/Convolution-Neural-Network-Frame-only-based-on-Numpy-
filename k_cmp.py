@@ -12,8 +12,10 @@ import Loss
 from util import Image_generator, int_to_one_hot
 from train import data_prepare
 
-# import keras.backend as k
-# k.categorical_crossentropy()
+'''
+this .py is for compare my frame with keras，for debug
+这个文件是为了比较框架和标准框架keras之间的区别，方便改bug
+'''
 
 if __name__ == '__main__':
     # (x_train, y_train), (x_test, y_test) = mnist.load_data()

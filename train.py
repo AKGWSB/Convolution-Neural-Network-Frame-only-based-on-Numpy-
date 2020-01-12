@@ -5,6 +5,16 @@ from Model import Model
 import Loss
 from util import Image_generator, int_to_one_hot
 
+'''
+Author: Ruo Long Lee, Collage of Computer Science, Shen Zhen University
+      : 李若龙 深大计软
+'''
+
+'''
+this .py is my train file, I creat a date sheet and train my model
+这个文件是我用来训练的文件，自定义了一个数据集
+'''
+
 def data_prepare():
     # date preprocess
     g = Image_generator()
@@ -68,6 +78,8 @@ def data_prepare():
 
 if __name__ == '__main__':
 
+    # 测试样例：模型搭建同keras
+
     x_train, y_train = data_prepare()
 
     # model config
@@ -103,7 +115,6 @@ if __name__ == '__main__':
     # plt.plot(E)
     # plt.show()
 
-
     # shuffle is important !!!!!!!
     date_len = x_train.shape[0]
     from random import shuffle
@@ -113,7 +124,7 @@ if __name__ == '__main__':
     y_train = y_train[index, :, :]
 
     # train
-    E = model.train_SGD(x_train_batch=x_train, y_train_batch=y_train, epoch=1, step_pre_epoch=x_train.shape[0], lr=0.001)
+    E = model.train_SGD(x_train_batch=x_train, y_train_batch=y_train, epoch=2, step_pre_epoch=x_train.shape[0], lr=0.001)
     plt.plot(E)
     plt.show()
     model.save_weights(root_directory='weights')

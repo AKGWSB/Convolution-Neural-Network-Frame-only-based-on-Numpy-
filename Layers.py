@@ -37,13 +37,15 @@ class Input:
         self.output_shape = input_shape
 
     # Forward propagation
-    # parameter
-    # x : the x_train , input to model
+    # param x : last layer's output
+    # 前向传播
+    # x 是当前层的输入
     def FP(self, x):
         self.input = x.copy()
         self.next_layer.FP(x=x)
 
     # end of back propagation
+    # 输入层不需要反向传播
     def BP(self, gradient, lr):
         pass
 
@@ -59,8 +61,8 @@ class Output:
     Output layer
     '''
 
-    # parameters
-    # last_layer   : the last layer in your model
+    # param last_layer : the last layer in your model
+    # last_layer : 模型的上一层
     def __init__(self, last_layer=None):
         # lsit struct bound
         self.next_layer = None
@@ -71,10 +73,14 @@ class Output:
 
     # Forward propagation
     # when FP called in output, output_layer.output = last_layer's output
+    # 输出层的输出是模型最后一层的输入
     def FP(self, x):
         self.output = x.copy()
 
     # Back propagation
+    # param gradient : last layer's gradient
+    # param lr       : learning rate
+    # 反向传播，gradient是当前层输出对损失函数的梯度， lr是学习率
     def BP(self, gradient, lr=0.01):
         self.gradient = gradient.copy()
         self.last_layer.BP(gradient=self.gradient, lr=lr)
@@ -99,9 +105,10 @@ class Dense:
     （output_units = n）
     '''
 
-    # parameters
-    # output_units : if output_units = m, then output shape is (m, 1)
-    # last_layer   : the last layer in your model
+    # param output_units : if output_units = m, then output shape is (m, 1)
+    # param last_layer : the last layer in your model
+    # last_layer : 模型的上一层
+    # output units : 输出的神经元个数
     def __init__(self, output_units, last_layer=None):
         # model list struct bound
         self.next_layer = None
@@ -113,51 +120,32 @@ class Dense:
         self.output_shape = (output_units, 1)
 
         # parameters' shape config & init
-        # glorot_uniform init :
+        # glorot uniform init :
         limit = np.sqrt(6/(self.input_shape[0]+self.output_shape[0]))
         self.weights = np.random.uniform(-1*limit, limit, size=(self.input_shape[0], self.output_shape[0]))
-        # self.weights /= (0.5 * np.sqrt(self.input_shape[0] * self.output_shape[0]))
-
-        # self.weights /= (0.5 * self.input_shape[0])
-        # self.weights /= np.sum(self.weights)
-        #self.weights -= np.mean(self.weights)  # problem
-
         self.bias = np.zeros((self.output_shape[0], 1))
-        # self.bias = np.random.rand(self.output_shape[0], 1)
-        # self.bias /= np.sum(self.bias)
 
     # Forward propagation
-    # parameters
-    # x : last layer's output
+    # param x : last layer's output
+    # 前向传播
+    # x 是当前层的输入
     def FP(self, x):
         self.input = x.copy()
         self.output = self.weights.T.dot(self.input) + self.bias
-        # print('output.shape = ',self.output.shape)
         self.next_layer.FP(x=self.output)
 
     # Back propagation
-    # parameters
-    # gradient : last layer's gradient
-    # lr       : learning rate
+    # param gradient : last layer's gradient
+    # param lr       : learning rate
+    # 反向传播，gradient是当前层输出对损失函数的梯度， lr是学习率
     def BP(self, gradient, lr):
         self.gradient = gradient.copy()
-        # print('self g',self.gradient.shape,  self.gradient)
         last_layer_gradient = self.weights.dot(self.gradient)
-        # print('dense pass g=', last_layer_gradient)
         self.last_layer.BP(gradient=last_layer_gradient, lr=lr)
 
-        # print('ds input=', self.input[..., -1])
         grad_for_w = np.tile(self.input.T, self.output_shape)   # gradient for weights
         self.weights -= (grad_for_w * self.gradient).T * lr
         self.bias -= self.gradient * lr  # gradient for bias mat is 1
-
-        # for debug
-        # print('gradient shape = ', self.gradient.shape)
-        # print('weights shape = ', self.weights.shape)
-        # print('g_w shape = ', grad_for_w.shape)
-        # print('input shape = ', self.input_shape)
-        # print('output shape = ', self.output.shape)
-        # print('\n')
 
     def save_weights(self, name, root_directory):
         num = int(name) + 1
@@ -185,6 +173,8 @@ class Relu:
     -------------------------------- shape -----------------------------------
     '''
 
+    # param last_layer : the last layer in your model
+    # last_layer : 模型的上一层
     def __init__(self, last_layer=None):
         # model list struct bound
         self.next_layer = None
@@ -195,17 +185,25 @@ class Relu:
         self.input_shape = self.last_layer.output_shape
         self.output_shape = self.input_shape
 
+    # Forward propagation
+    # param x : last layer's output
+    # 前向传播
+    # x 是当前层的输入
     def FP(self, x):
         self.input = x.copy()
         self.next_layer.FP(x=np.maximum(x, 0))
 
+    # Back propagation
+    # param gradient : last layer's gradient
+    # param lr       : learning rate
+    # 反向传播，gradient是当前层输出对损失函数的梯度， lr是学习率
     def BP(self, gradient, lr):
         self.gradient = gradient.copy()
         # input>0, self.gradient = 1 * gradient , else self.gradient = 0
+        # 如果输入大于0，对应位置的梯度等于上一层回传的梯度，否则为零
         select_mat = np.zeros(shape=self.input.shape)
         select_mat = np.greater(self.input, select_mat).astype(np.int32)
         self.last_layer_gradient = select_mat*self.gradient
-        # print('relu pass g=', self.last_layer_gradient)
         self.last_layer.BP(gradient=self.last_layer_gradient, lr=lr)
 
     # no parameters to save or load
@@ -226,6 +224,8 @@ class Softmax:
     -------------------------------- shape -----------------------------------
     '''
 
+    # param last_layer : the last layer in your model
+    # last_layer : 模型的上一层
     def __init__(self, last_layer=None):
         # model list struct bound
         self.next_layer = None
@@ -236,6 +236,10 @@ class Softmax:
         self.input_shape = self.last_layer.output_shape
         self.output_shape = self.input_shape
 
+    # Forward propagation
+    # param x : last layer's output
+    # 前向传播
+    # x 是当前层的输入
     def FP(self, x):
         self.input = x.copy()
         self.expi = np.exp(self.input)
@@ -243,12 +247,18 @@ class Softmax:
         self.output = self.expi / self.sum
         self.next_layer.FP(x=self.output)
 
+    # Back propagation
+    # param gradient : last layer's gradient
+    # param lr       : learning rate
+    # 反向传播，gradient是当前层输出对损失函数的梯度， lr是学习率
     def BP(self, gradient, lr):
         self.gradient = gradient.copy()
         self.tp = self.expi/self.sum
         self.last_layer_gradient = np.zeros(shape=self.input_shape, dtype=np.float64)
 
         for i in range(self.input_shape[0]):
+            # gradient for Input[i]
+            # 输入向量 Input 的第 i 个位置的梯度
             self.gradient_for_Ii = np.zeros(shape=self.input_shape, dtype=np.float64)
 
             for j in range(self.input_shape[0]):
@@ -259,7 +269,6 @@ class Softmax:
 
             self.last_layer_gradient[i] = np.sum(self.gradient_for_Ii * self.gradient)
 
-        # print('sm pass g', self.last_layer_gradient[..., 0])
         self.last_layer.BP(gradient=self.last_layer_gradient, lr=lr)
 
     # no parameters to save or load
@@ -280,6 +289,8 @@ class Flatten:
     ------------------- shape ----------------------
     '''
 
+    # param last_layer : the last layer in your model
+    # last_layer : 模型的上一层
     def __init__(self, last_layer=None):
         # model list struct bound
         self.next_layer = None
@@ -290,15 +301,21 @@ class Flatten:
         self.input_shape = self.last_layer.output_shape
         self.output_shape = (np.prod(self.input_shape), 1)
 
+    # Forward propagation
+    # param x : last layer's output
+    # 前向传播
+    # x 是当前层的输入
     def FP(self, x):
         self.input = x.copy()
         self.next_layer.FP(x=self.input.reshape(self.output_shape))
 
+    # Back propagation
+    # param gradient : last layer's gradient
+    # param lr       : learning rate
+    # 反向传播，gradient是当前层输出对损失函数的梯度， lr是学习率
     def BP(self, gradient, lr):
         self.gradient = gradient.copy()
-        # print('flatten self g=', self.gradient)
         self.last_layer_gradient = self.gradient.reshape(self.input_shape)
-        # print('flatten pass g=', self.last_layer_gradient)
         self.last_layer.BP(gradient=self.last_layer_gradient, lr=lr)
 
     # no parameters to save or load
@@ -320,7 +337,13 @@ class Convolution2D:
     ------------------- shape ----------------------
     '''
 
-    def __init__(self, last_layer=None, kernal_number=1, kernal_size=(3,3), test_mod=False):
+    # param last_layer : the last layer in your model
+    # param kernal_number : the number of kernals (filters)
+    # param kernal_size : the shape[0], shape[1] of the kernals (filters)
+    # last_layer : 模型的上一层
+    # kernal_number : 卷积核（滤波器）的数量
+    # kernal_size : 卷积核（滤波器）的尺寸，第0， 1 维度
+    def __init__(self, last_layer=None, kernal_number=1, kernal_size=(3,3)):
         # model list struct bound
         self.next_layer = None
         self.last_layer = last_layer
@@ -330,33 +353,21 @@ class Convolution2D:
         self.kernal_number = kernal_number
         self.input_shape = self.last_layer.output_shape
         self.output_shape = (self.input_shape[0]-2*int(kernal_size[0]/2), self.input_shape[1]-2*int(kernal_size[1]/2), self.kernal_number)
-        # self.output = np.zeros(shape=self.output_shape, dtype=np.float64)
 
         # parameters' shape config & init
-        # (kernal_size[0], kernal_siez[1], last_layer's output's channel_number), kernal_number
-        # self.kernals = np.random.rand(kernal_size[0], kernal_size[1], self.input_shape[-1], kernal_number)
-        # self.kernals = np.ones((kernal_size[0], kernal_size[1], self.input_shape[-1], kernal_number))
-        # self.kernals /= np.sum(self.kernals)  # problem
-        # self.kernals /= (self.kernals.shape[0] * self.kernals.shape[1] * self.kernals.shape[2] * 0.5)
-        # self.bias = np.zeros(shape=self.output_shape)
-
+        # golort uniform init
         limit = np.sqrt(6/(np.prod((kernal_size[0], kernal_size[1], self.input_shape[-1], kernal_number))))
         self.kernals = np.random.uniform(-1*limit, limit, size=(kernal_size[0], kernal_size[1], self.input_shape[-1], kernal_number))
-        # self.kernals = np.random.rand(kernal_size[0], kernal_size[1], self.input_shape[-1], kernal_number)
 
-        # # Laplace Operator test
-        # self.test_mod = test_mod
-        # if self.test_mod == True:
-        #     # using Laplace Operator for convolution
-        #     temp = [[-1, -1, -1], [-1, 8, -1], [-1, -1, -1]]
-        #     self.kernals = np.random.rand(3, 3, 1)
-        #     self.kernals[..., 0] = temp
-
+    # Forward propagation
+    # param x : last layer's output
+    # 前向传播
+    # x 是当前层的输入
     def FP(self, x):
         self.input = x.copy()
         self.output = np.zeros(shape=self.output_shape, dtype=np.float64)
 
-        # width bias
+        # scene width 感受野
         w1 = self.kernals.shape[0]
         w2 = self.kernals.shape[1]
 
@@ -365,35 +376,14 @@ class Convolution2D:
             filter = self.kernals[..., k]
             for i in range(self.output_shape[0]):
                 for j in range(self.output_shape[1]):
-                    # if self.test_mod == True:
-                    #     # for img show, auto double limit to 0~255
-                    #     self.output[i][j][k] = np.minimum(np.maximum(np.sum(filter * self.input[i:i+w1, j:j+w2]), 0), 255)
-                    # else:
-                        # train, unlimited
                         self.output[i][j][k] = np.sum(filter * self.input[i:i + w1, j:j + w2])
-            # plt.imshow(np.maximum(np.minimum(self.output[..., k], 1), 0), cmap='gray')
-            # plt.show()
 
-        # self.output += self.bias
-        # print('conv output=', self.output)
         self.next_layer.FP(x=self.output)
 
-    def get_o(self, x):
-        self.input = x.copy()
-        self.output_ = np.zeros(shape=self.output_shape, dtype=np.float64)
-
-        # width bias
-        w1 = self.kernals.shape[0]
-        w2 = self.kernals.shape[1]
-
-        # Convolution2D
-        for k in range(self.kernal_number):
-            filter = self.kernals[..., k]
-            for i in range(self.output_shape[0]):
-                for j in range(self.output_shape[1]):
-                        self.output_[i][j][k] = np.sum(filter * self.input[i:i + w1, j:j + w2])
-        return self.output_
-
+    # Back propagation
+    # param gradient : last layer's gradient
+    # param lr       : learning rate
+    # 反向传播，gradient是当前层输出对损失函数的梯度， lr是学习率
     def BP(self, gradient, lr):
         self.gradient = gradient.copy()
 
@@ -419,16 +409,16 @@ class Convolution2D:
         # self.last_layer.BP(gradient=self.last_layer_gradient, lr=lr)
 
         # convolution for updating weights
+        # 更新卷积核：使用上一层回传的梯度（卷积层输出对损失函数的梯度）作为卷积核，卷积输入矩阵
         w1 = self.output_shape[0]
         w2 = self.output_shape[1]
-        self.gfw = np.zeros(self.kernals.shape) # gradient for weights
+        self.gfw = np.zeros(self.kernals.shape) # gradient for weights ，权重的梯度
         for k in range(self.kernal_number):
             gk = self.gradient[..., k]
             for c in range(self.kernals.shape[2]):
-                Ich = self.input[..., c]
+                Ich = self.input[..., c]    # Input in channel c ，输入图像的第c通道
                 for i in range(self.kernals.shape[0]):
                     for j in range(self.kernals.shape[1]):
-                        # self.kernals[i][j][c][k] -= np.sum(Ich[i:i+w1, j:j+w2] * gk) * lr
                         self.gfw[i][j][c][k] = np.sum(Ich[i:i+w1, j:j+w2] * gk) * lr
         self.kernals -= self.gfw
 
@@ -446,6 +436,24 @@ class Convolution2D:
         print('load weights successfully, path is:', path)
         self.next_layer.load_weights(name=str(num), root_directory=root_directory)
 
+    # get output , for debug or test
+    # 测试用
+    # def get_o(self, x):
+    #     self.input = x.copy()
+    #     self.output_ = np.zeros(shape=self.output_shape, dtype=np.float64)
+    #
+    #     # width bias
+    #     w1 = self.kernals.shape[0]
+    #     w2 = self.kernals.shape[1]
+    #
+    #     # Convolution2D
+    #     for k in range(self.kernal_number):
+    #         filter = self.kernals[..., k]
+    #         for i in range(self.output_shape[0]):
+    #             for j in range(self.output_shape[1]):
+    #                     self.output_[i][j][k] = np.sum(filter * self.input[i:i + w1, j:j + w2])
+    #     return self.output_
+
 
 class AveragePooling2D:
     '''
@@ -458,8 +466,10 @@ class AveragePooling2D:
     ------------------- shape ----------------------
     '''
 
-    # parameters:
-    # step      : the pooling window is step x step shape
+    # param last_layer : the last layer in your model
+    # param step       : the step of pooling
+    # last_layer : 模型的上一层
+    # step       : 池化的步长
     def __init__(self, last_layer=None, step=2):
         # model list struct bound
         self.next_layer = None
@@ -474,33 +484,38 @@ class AveragePooling2D:
         self.output_shape[1]  = int(self.input_shape[1] // 2)
         self.output_shape = tuple(self.output_shape)
 
-        # print('av config --  shape=', self.output_shape)
-
         self.step = step
 
+    # Forward propagation
+    # param x : last layer's output
+    # 前向传播
+    # x 是当前层的输入
     def FP(self, x):
         self.input = x.copy()
         self.output = np.zeros(shape=self.output_shape, dtype=np.float64)
+        s = self.step
+
         for i in range(self.output_shape[0]):
             for j in range(self.output_shape[1]):
                 for c in range(self.output_shape[2]):
-                    self.output[i][j][c] = np.sum(self.input[2*i:2*i+self.step, 2*j:2*j+self.step, c]) / (self.step*self.step)
+                    self.output[i][j][c] = np.sum(self.input[s*i:s*i+s, s*j:s*j+s, c]) / (s*s)
 
-        # print('av output shape=', self.output.shape)
-        # if self.output_shape[2] == 3:
-        #     plt.imshow(self.output)
-        #     plt.show()
         self.next_layer.FP(x=self.output)
 
+    # Back propagation
+    # param gradient : last layer's gradient
+    # param lr       : learning rate
+    # 反向传播，gradient是当前层输出对损失函数的梯度， lr是学习率
     def BP(self, gradient, lr):
         self.gradient = gradient.copy()
-        # print('av g', self.gradient)
         self.last_layer_gradient = np.zeros(shape=self.input_shape, dtype=np.float64)
+        s = self.step
+
         for i in range(self.output_shape[0]):
             for j in range(self.output_shape[1]):
                 for c in range(self.output_shape[2]):
-                    self.last_layer_gradient[2*i:2*i+self.step, 2*j:2*j+self.step, c:c+1] = self.gradient[i][j][c] / (self.step*self.step)
-        # print('av pass g=', self.last_layer_gradient)
+                    self.last_layer_gradient[s*i:s*i+s, s*j:s*j+s, c:c+1] = self.gradient[i][j][c] / (s*s)
+
         self.last_layer.BP(gradient=self.last_layer_gradient, lr=lr)
 
     # no parameters to save or load

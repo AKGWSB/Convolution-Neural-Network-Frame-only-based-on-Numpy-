@@ -5,6 +5,15 @@ Author: Ruo Long Lee, Collage of Computer Science, Shen Zhen University
       : 李若龙 深大计软
 '''
 
+'''
+工地英语警告↓
+util contains some useful functions like convert to one hot encoding
+or a class of image data generator
+
+帮助函数：转换为独热编码
+图像增强的类
+'''
+
 def int_to_one_hot(x, n_classes):
     return np.expand_dims(np.eye(n_classes)[x], -1)
 
@@ -18,6 +27,12 @@ class Image_generator:
     def __init__(self):
         pass
 
+    # param input : a single image
+    # param label : a single target label
+    # batch_size  : the number of output image
+    # param input : 单个输入图片
+    # param label : 该图片对应的目标值
+    # batch_size  : 输出图片的数量
     def one_input_flow_batch(self,
                        input,
                        label,

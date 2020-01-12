@@ -6,7 +6,8 @@ import Loss
 from util import Image_generator, int_to_one_hot
 
 '''
-this .py is for test 
+this .py is for test ， debug
+这个文件是为了测试 bug 而建立的
 '''
 
 # -------- full connect network test --------
