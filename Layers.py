@@ -1,5 +1,4 @@
 import numpy as np
-import matplotlib.pyplot as plt
 
 '''
 Author: Ruo Long Lee, Collage of Computer Science, Shen Zhen University
